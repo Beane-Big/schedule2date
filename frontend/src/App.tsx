@@ -165,197 +165,191 @@ export default function App() {
   const selectedEntry = selected ? state.shifts.find((s) => s.date === selected) : undefined;
 
   return (
-    <>
-      <header className="topbar">
-        <span className="title">schedule2date</span>
-        <span className="muted">排期班表</span>
-      </header>
-      <main className="content wide">
-        {/* 窄屏按 导入、预览、编辑、设置 的顺序排；宽屏左边是导入和设置，右边是预览，见 styles.css 的 .layout。 */}
-        <div className="layout">
-          <section
-            className={dragging ? "card stack dropzone dragging area-import" : "card stack dropzone area-import"}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={onDrop}
-          >
-            <h1>导入班表</h1>
-            <p className="muted">支持 .xlsx 和 .csv。表头要有“日期”和“班次”列，“上下班时间”“就餐时间/备注”列可选。也可以把文件拖到这里。</p>
-            <input
-              ref={fileInput}
-              type="file"
-              accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              hidden
-              onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])}
-            />
-            <div className="actions">
-              <button type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
-                {busy ? "读取中…" : state.shifts.length ? "重新导入" : "选择文件"}
-              </button>
-              {state.shifts.length > 0 && (
-                <>
-                  <span className="muted">
-                    {state.fileName} · {state.shifts.filter((s) => s.name.trim()).length} 天
-                  </span>
-                  <button type="button" className="link" onClick={clearAll}>
-                    清空
-                  </button>
-                </>
-              )}
-            </div>
-            {error && <p className="error">{error}</p>}
-            {data && (
-              <div className="fields">
-                {months.length > 1 && (
-                  <Field label="月份">
-                    <select
-                      value={month}
-                      onChange={(e) => {
-                        select(null);
-                        update({ month: e.target.value });
-                      }}
-                    >
-                      {months.map((m) => (
-                        <option key={m} value={m}>
-                          {m.replace("-", "年")}月
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                )}
-                {state.yearless && (
-                  <Field label="年份（原表没写年份）">
-                    <select value={year} onChange={(e) => changeYear(Number(e.target.value))}>
-                      {yearChoices.map((y) => (
-                        <option key={y} value={y}>
-                          {y}年
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                )}
-              </div>
-            )}
-          </section>
-
-          {data ? (
-            <section className="card stack area-preview">
-              <div className="card-head">
-                <h1>预览</h1>
+    <main className="content wide">
+      {/* 窄屏按 导入、预览、编辑、设置 的顺序排；宽屏左边是导入和设置，右边是预览，见 styles.css 的 .layout。 */}
+      <div className="layout">
+        <section
+          className={dragging ? "card stack dropzone dragging area-import" : "card stack dropzone area-import"}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+        >
+          <h1>导入班表</h1>
+          <p className="muted">支持 .xlsx 和 .csv。表头要有“日期”和“班次”列，“上下班时间”“就餐时间/备注”列可选。也可以把文件拖到这里。</p>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            hidden
+            onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])}
+          />
+          <div className="actions">
+            <button type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
+              {busy ? "读取中…" : state.shifts.length ? "重新导入" : "选择文件"}
+            </button>
+            {state.shifts.length > 0 && (
+              <>
                 <span className="muted">
-                  {width}×{height}
+                  {state.fileName} · {state.shifts.filter((s) => s.name.trim()).length} 天
                 </span>
-              </div>
-              <p className="muted">点日期格子可以修改内容和样式。</p>
-              <canvas ref={preview} className="preview" onClick={onPreviewClick} />
-              <div className="actions">
-                <button type="button" disabled={!!sizeError} onClick={download}>
-                  下载图片
+                <button type="button" className="link" onClick={clearAll}>
+                  清空
                 </button>
-                {canShare && (
-                  <button type="button" className="secondary" disabled={!!sizeError} onClick={share}>
-                    分享 / 存到相册
-                  </button>
-                )}
-              </div>
-            </section>
-          ) : (
-            <section className="card stack empty area-preview">
-              <p className="muted">导入班表后，这里会显示生成的图片。</p>
-            </section>
-          )}
-
-          {data && selected && (
-            <CellEditor
-              className="area-editor"
-              key={selected}
-              date={selected}
-              entry={selectedEntry}
-              styles={state.styles}
-              theme={state.image.theme}
-              onShiftChange={changeShift}
-              onStylesChange={(styles) => update({ styles })}
-              onClose={() => select(null)}
-            />
-          )}
-
+              </>
+            )}
+          </div>
+          {error && <p className="error">{error}</p>}
           {data && (
-            <section className="card stack area-settings">
-              <h1>图片设置</h1>
-              <div className="fields">
-                <Field label="标题" wide>
-                  <input value={state.title} placeholder={`${year}年${monthNum}月排班表`} onChange={(e) => update({ title: e.target.value })} />
-                </Field>
-                <Field label="尺寸" wide>
+            <div className="fields">
+              {months.length > 1 && (
+                <Field label="月份">
                   <select
-                    value={state.preset}
+                    value={month}
                     onChange={(e) => {
-                      const p = sizePresets.find((x) => x.id === e.target.value);
-                      if (p) setSize(p.width, p.height, p.id);
-                      else update({ preset: "custom" });
+                      select(null);
+                      update({ month: e.target.value });
                     }}
                   >
-                    {sizePresets.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label}
+                    {months.map((m) => (
+                      <option key={m} value={m}>
+                        {m.replace("-", "年")}月
                       </option>
                     ))}
-                    <option value="custom">自定义</option>
                   </select>
                 </Field>
-                <Field label="宽（像素）">
-                  <input type="number" min={minSide} max={maxSide} value={width} onChange={(e) => setSize(Number(e.target.value), height)} />
+              )}
+              {state.yearless && (
+                <Field label="年份（原表没写年份）">
+                  <select value={year} onChange={(e) => changeYear(Number(e.target.value))}>
+                    {yearChoices.map((y) => (
+                      <option key={y} value={y}>
+                        {y}年
+                      </option>
+                    ))}
+                  </select>
                 </Field>
-                <Field label="高（像素）">
-                  <input type="number" min={minSide} max={maxSide} value={height} onChange={(e) => setSize(width, Number(e.target.value))} />
-                </Field>
-              </div>
-              {sizeError && <p className="error">{sizeError}</p>}
-              <div className="fields">
-                <Field label="格式">
-                  <Segmented<Format>
-                    value={state.format}
-                    onChange={(format) => update({ format })}
-                    options={[
-                      { value: "jpeg", label: "JPG" },
-                      { value: "png", label: "PNG" },
-                    ]}
-                  />
-                </Field>
-                <Field label="主题">
-                  <Segmented
-                    value={state.image.theme}
-                    onChange={(theme) => setImage({ theme })}
-                    options={[
-                      { value: "light", label: "浅色" },
-                      { value: "dark", label: "深色" },
-                    ]}
-                  />
-                </Field>
-                <Field label="每周从">
-                  <Segmented<0 | 1>
-                    value={state.image.weekStart}
-                    onChange={(weekStart) => setImage({ weekStart })}
-                    options={[
-                      { value: 1, label: "周一" },
-                      { value: 0, label: "周日" },
-                    ]}
-                  />
-                </Field>
-              </div>
-              <div className="actions">
-                <Toggle label="显示上下班时间" checked={state.image.showTime} onChange={(showTime) => setImage({ showTime })} />
-                <Toggle label="显示就餐备注" checked={state.image.showNote} onChange={(showNote) => setImage({ showNote })} />
-                <Toggle label="显示图例" checked={state.image.showLegend} onChange={(showLegend) => setImage({ showLegend })} />
-                <Toggle label="显示天数统计" checked={state.image.showStats} onChange={(showStats) => setImage({ showStats })} />
-              </div>
-            </section>
+              )}
+            </div>
           )}
-        </div>
-      </main>
-    </>
+        </section>
+
+        {data ? (
+          <section className="card stack area-preview">
+            <div className="card-head">
+              <h1>预览</h1>
+              <span className="muted">
+                {width}×{height}
+              </span>
+            </div>
+            <div className="actions">
+              <button type="button" disabled={!!sizeError} onClick={download}>
+                下载图片
+              </button>
+              {canShare && (
+                <button type="button" className="secondary" disabled={!!sizeError} onClick={share}>
+                  分享 / 存到相册
+                </button>
+              )}
+            </div>
+            <p className="muted">点日期格子可以修改内容和样式。</p>
+            <canvas ref={preview} className="preview" onClick={onPreviewClick} />
+          </section>
+        ) : (
+          <section className="card stack empty area-preview">
+            <p className="muted">导入班表后，这里会显示生成的图片。</p>
+          </section>
+        )}
+
+        {data && selected && (
+          <CellEditor
+            className="area-editor"
+            key={selected}
+            date={selected}
+            entry={selectedEntry}
+            styles={state.styles}
+            theme={state.image.theme}
+            onShiftChange={changeShift}
+            onStylesChange={(styles) => update({ styles })}
+            onClose={() => select(null)}
+          />
+        )}
+
+        {data && (
+          <section className="card stack area-settings">
+            <h1>图片设置</h1>
+            <div className="fields">
+              <Field label="标题" wide>
+                <input value={state.title} placeholder={`${year}年${monthNum}月排班表`} onChange={(e) => update({ title: e.target.value })} />
+              </Field>
+              <Field label="尺寸" wide>
+                <select
+                  value={state.preset}
+                  onChange={(e) => {
+                    const p = sizePresets.find((x) => x.id === e.target.value);
+                    if (p) setSize(p.width, p.height, p.id);
+                    else update({ preset: "custom" });
+                  }}
+                >
+                  {sizePresets.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                  <option value="custom">自定义</option>
+                </select>
+              </Field>
+              <Field label="宽（像素）">
+                <input type="number" min={minSide} max={maxSide} value={width} onChange={(e) => setSize(Number(e.target.value), height)} />
+              </Field>
+              <Field label="高（像素）">
+                <input type="number" min={minSide} max={maxSide} value={height} onChange={(e) => setSize(width, Number(e.target.value))} />
+              </Field>
+            </div>
+            {sizeError && <p className="error">{sizeError}</p>}
+            <div className="fields">
+              <Field label="格式">
+                <Segmented<Format>
+                  value={state.format}
+                  onChange={(format) => update({ format })}
+                  options={[
+                    { value: "jpeg", label: "JPG" },
+                    { value: "png", label: "PNG" },
+                  ]}
+                />
+              </Field>
+              <Field label="主题">
+                <Segmented
+                  value={state.image.theme}
+                  onChange={(theme) => setImage({ theme })}
+                  options={[
+                    { value: "light", label: "浅色" },
+                    { value: "dark", label: "深色" },
+                  ]}
+                />
+              </Field>
+              <Field label="每周从">
+                <Segmented<0 | 1>
+                  value={state.image.weekStart}
+                  onChange={(weekStart) => setImage({ weekStart })}
+                  options={[
+                    { value: 1, label: "周一" },
+                    { value: 0, label: "周日" },
+                  ]}
+                />
+              </Field>
+            </div>
+            <div className="actions">
+              <Toggle label="显示上下班时间" checked={state.image.showTime} onChange={(showTime) => setImage({ showTime })} />
+              <Toggle label="显示就餐备注" checked={state.image.showNote} onChange={(showNote) => setImage({ showNote })} />
+              <Toggle label="显示班次说明" checked={state.image.showLegend} onChange={(showLegend) => setImage({ showLegend })} />
+              <Toggle label="显示天数统计" checked={state.image.showStats} onChange={(showStats) => setImage({ showStats })} />
+            </div>
+          </section>
+        )}
+      </div>
+    </main>
   );
 }

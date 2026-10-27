@@ -1,4 +1,4 @@
-# schedule2date（schedule2date）模块约定（给 AI 编码工具和自己看）
+# 班表（schedule2date）模块约定（给 AI 编码工具和自己看）
 
 这是一个 Vibebooth 模块，遵循模块规范 `platform: 1`：https://github.com/Beane-Big/vibebooth/blob/main/docs/module-spec.md 。不符合规范时 `npm run pack` 会直接报错。下面是本模块自己的约定。
 

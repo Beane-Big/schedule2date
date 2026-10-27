@@ -157,27 +157,26 @@ export function draw(canvas: HTMLCanvasElement, data: MonthData, styles: Styles,
   const legendRowH = u * 5.2;
   const legendH = o.showLegend && legend.length ? Math.ceil(legend.length / legendCols) * legendRowH + u * 2 : 0;
 
-  // 星期表头
+  // 日期格子：格子太高时限制高度，多出来的空间留在星期表头和格子区的上下，表头始终贴着格子。
   const gap = Math.max(2, Math.round(u * 0.9));
   const cellW = (innerW - gap * 6) / 7;
   const headH = u * 5;
+  const first = new Date(data.year, data.month - 1, 1);
+  const daysInMonth = new Date(data.year, data.month, 0).getDate();
+  const lead = (first.getDay() - o.weekStart + 7) % 7;
+  const rows = Math.ceil((lead + daysInMonth) / 7);
+  const gridH = H - pad - legendH - y - headH;
+  const cellH = Math.max(u * 6, Math.min((gridH - gap * (rows - 1)) / rows, cellW * 1.9));
+  const gridTop = y + headH + Math.max(0, (gridH - (cellH * rows + gap * (rows - 1))) / 2);
+
+  // 星期表头
   const order = Array.from({ length: 7 }, (_, i) => (i + o.weekStart) % 7);
   setFont(ctx, u * 3, true);
   ctx.textAlign = "center";
   order.forEach((wd, i) => {
     ctx.fillStyle = wd === 0 || wd === 6 ? c.weekend : c.muted;
-    ctx.fillText(weekNames[wd], pad + i * (cellW + gap) + cellW / 2, y + headH * 0.68);
+    ctx.fillText(weekNames[wd], pad + i * (cellW + gap) + cellW / 2, gridTop - headH + headH * 0.68);
   });
-  y += headH;
-
-  // 日期格子：格子太高时限制高度，多出来的空间留在格子区上下。
-  const first = new Date(data.year, data.month - 1, 1);
-  const daysInMonth = new Date(data.year, data.month, 0).getDate();
-  const lead = (first.getDay() - o.weekStart + 7) % 7;
-  const rows = Math.ceil((lead + daysInMonth) / 7);
-  const gridH = H - pad - legendH - y;
-  const cellH = Math.max(u * 6, Math.min((gridH - gap * (rows - 1)) / rows, cellW * 1.9));
-  const gridTop = y + Math.max(0, (gridH - (cellH * rows + gap * (rows - 1))) / 2);
   const radius = Math.min(cellW, cellH) * 0.12;
   const boxes: CellBox[] = [];
 
