@@ -1,13 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
   <title id="title">班表</title>
-  <rect width="48" height="48" rx="12" fill="#2f6fde"/>
-  <rect x="9" y="10" width="30" height="29" rx="6" fill="#fff"/>
-  <path d="M9 18h30" stroke="#dbe7ff" stroke-width="2"/>
-  <path d="M17 8v5M31 8v5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-  <rect x="13" y="22" width="6" height="5" rx="2" fill="#ffb871"/>
-  <rect x="21" y="22" width="6" height="5" rx="2" fill="#8fb4f7"/>
-  <rect x="29" y="22" width="6" height="5" rx="2" fill="#a5b0f0"/>
-  <rect x="13" y="30" width="6" height="5" rx="2" fill="#8fd19e"/>
-  <rect x="21" y="30" width="6" height="5" rx="2" fill="#7dd3c8"/>
-  <rect x="29" y="30" width="6" height="5" rx="2" fill="#d7a6ea"/>
+  <defs>
+    <linearGradient id="background" x1="5" y1="3" x2="43" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#65d8ff"/>
+      <stop offset=".5" stop-color="#7184f4"/>
+      <stop offset="1" stop-color="#b36dec"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="12" y1="10" x2="37" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".38"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(12 8) rotate(47) scale(29)">
+      <stop stop-color="#fff" stop-opacity=".62"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="5" y="7" width="38" height="37" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#3146a0" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="url(#background)"/>
+  <rect width="48" height="48" rx="12" fill="url(#glow)"/>
+  <g filter="url(#shadow)">
+    <rect x="9" y="10" width="30" height="29" rx="6" fill="url(#glass)" stroke="#fff" stroke-opacity=".72"/>
+    <path d="M9.5 18h29" stroke="#fff" stroke-opacity=".58" stroke-width="1.5"/>
+    <path d="M17 8v5M31 8v5" stroke="#fff" stroke-opacity=".9" stroke-width="3" stroke-linecap="round"/>
+    <rect x="13" y="22" width="6" height="5" rx="2" fill="#ffd09a" fill-opacity=".92"/>
+    <rect x="21" y="22" width="6" height="5" rx="2" fill="#b9d6ff" fill-opacity=".92"/>
+    <rect x="29" y="22" width="6" height="5" rx="2" fill="#c6caff" fill-opacity=".92"/>
+    <rect x="13" y="30" width="6" height="5" rx="2" fill="#b8e6c1" fill-opacity=".92"/>
+    <rect x="21" y="30" width="6" height="5" rx="2" fill="#a8e4df" fill-opacity=".92"/>
+    <rect x="29" y="30" width="6" height="5" rx="2" fill="#e3b8f2" fill-opacity=".92"/>
+  </g>
 </svg>
