@@ -243,8 +243,7 @@ export default function App() {
               <span className="muted">
                 {width}×{height}
               </span>
-            </div>
-            <div className="actions">
+              <div className="actions">
               <button type="button" disabled={!!sizeError} onClick={download}>
                 下载图片
               </button>
@@ -253,6 +252,7 @@ export default function App() {
                   分享 / 存到相册
                 </button>
               )}
+            </div>
             </div>
             <p className="muted">点日期格子可以修改内容和样式。</p>
             <canvas ref={preview} className="preview" onClick={onPreviewClick} />

@@ -142,8 +142,9 @@ input:disabled { opacity: 0.6; }
   .area-preview { grid-area: preview; position: sticky; top: 16px; }
 }
 
-.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.card-head { display: flex; align-items: baseline; gap: 12px; }
 .card-head h1 { margin: 0; }
+.card-head .actions { margin-left: auto;}
 
 .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); min-width: 0; }
