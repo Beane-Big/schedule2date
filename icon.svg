@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#2f6fde"/><path d="M11 14h26l2 7a4.3 4.3 0 0 1-8.6 0 4.3 4.3 0 0 1-8.6 0 4.3 4.3 0 0 1-8.6 0z" fill="#fff"/><path d="M13 26v10h22V26" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">班表</title>
+  <rect width="48" height="48" rx="12" fill="#2f6fde"/>
+  <rect x="9" y="10" width="30" height="29" rx="6" fill="#fff"/>
+  <path d="M9 18h30" stroke="#dbe7ff" stroke-width="2"/>
+  <path d="M17 8v5M31 8v5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <rect x="13" y="22" width="6" height="5" rx="2" fill="#ffb871"/>
+  <rect x="21" y="22" width="6" height="5" rx="2" fill="#8fb4f7"/>
+  <rect x="29" y="22" width="6" height="5" rx="2" fill="#a5b0f0"/>
+  <rect x="13" y="30" width="6" height="5" rx="2" fill="#8fd19e"/>
+  <rect x="21" y="30" width="6" height="5" rx="2" fill="#7dd3c8"/>
+  <rect x="29" y="30" width="6" height="5" rx="2" fill="#d7a6ea"/>
+</svg>
