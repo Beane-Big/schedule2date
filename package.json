@@ -1,0 +1,14 @@
+{
+  "name": "vibebooth-module-schedule2date",
+  "private": true,
+  "version": "0.0.0",
+  "description": "排期班表",
+  "scripts": {
+    "pack": "node scripts/vb.mjs pack",
+    "pack:source": "node scripts/vb.mjs source",
+    "install:local": "node scripts/vb.mjs install",
+    "dev": "node scripts/vb.mjs dev",
+    "standalone": "node scripts/vb.mjs standalone",
+    "rename": "node scripts/vb.mjs rename"
+  }
+}
