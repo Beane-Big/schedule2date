@@ -1,9 +1,10 @@
-export type Note = { id: number; text: string; author: string; createdAt: string };
+import type { Doc } from "./store";
 
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public body?: unknown,
   ) {
     super(message);
   }
@@ -20,12 +21,16 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.error ?? "请求失败");
+    throw new ApiError(res.status, body.error ?? "请求失败", body);
   }
   return res.status === 204 ? (undefined as T) : res.json();
 }
 
+// 后端保存的当前班表。还没有人导入过时 data 是 null、version 是 0。
+export type Saved = { data: Doc | null; version: number; updatedBy: string; updatedAt: string };
+
 export const api = {
-  notes: () => request<Note[]>("/api/schedule2date/notes"),
-  addNote: (text: string) => request<Note>("/api/schedule2date/notes", { method: "POST", body: JSON.stringify({ text }) }),
+  schedule: () => request<Saved>("/api/schedule2date/schedule"),
+  // version 是保存前看到的版本；别人先改过时返回 409，错误的 body.current 是最新的班表。
+  save: (version: number, data: Doc) => request<Saved>("/api/schedule2date/schedule", { method: "PUT", body: JSON.stringify({ version, data }) }),
 };

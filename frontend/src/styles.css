@@ -140,6 +140,8 @@ input:disabled { opacity: 0.6; }
   .area-editor { grid-area: editor; }
   .area-settings { grid-area: settings; }
   .area-preview { grid-area: preview; position: sticky; top: 16px; }
+  /* 只能查看时只有预览一块，居中显示。 */
+  .layout.view-only { grid-template-columns: minmax(0, 720px); grid-template-areas: "preview"; grid-template-rows: auto; justify-content: center; }
 }
 
 .card-head { display: flex; align-items: baseline; gap: 12px; }
@@ -185,7 +187,7 @@ input:disabled { opacity: 0.6; }
   margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
-  cursor: pointer;
 }
+.preview.editable { cursor: pointer; }
 
 .empty { min-height: 200px; justify-content: center; align-items: center; }

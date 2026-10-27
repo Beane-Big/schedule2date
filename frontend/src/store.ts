@@ -1,4 +1,4 @@
-// 页面状态和它在浏览器里的保存。模块没有后端，导入的班表和样式只存在这台设备的浏览器里。
+// 页面状态，以及它和后端保存的班表文档之间的转换。班表只在后端保存最新一份，所有人看到的是同一份。
 import type { ImageOptions, Styles } from "./render";
 import type { Shift } from "./schedule";
 
@@ -24,7 +24,7 @@ export type State = {
   shifts: Shift[];
   yearless: boolean;
   fileName: string;
-  month: string; // 当前显示的月份 YYYY-MM
+  month: string; // 当前显示的月份 YYYY-MM，只在本页面里用，不保存
   styles: Styles;
   image: Omit<ImageOptions, "title">;
   title: string; // 空表示用默认标题“2026年10月排班表”
@@ -53,28 +53,37 @@ export const initialState: State = {
   format: "jpeg",
 };
 
-const key = "schedule2date:v1";
+// 后端保存的文档：班次由后端检查格式，settings 原样保存。
+export type Doc = {
+  shifts: Shift[];
+  yearless: boolean;
+  fileName: string;
+  settings: Pick<State, "styles" | "image" | "title" | "preset" | "format">;
+};
 
-export function loadState(): State {
-  try {
-    const saved = JSON.parse(localStorage.getItem(key) ?? "null");
-    if (!saved) return initialState;
-    // 和默认值合并，以后加了新选项时老数据也能用。
-    return {
-      ...initialState,
-      ...saved,
-      styles: { ...initialState.styles, ...saved.styles },
-      image: { ...initialState.image, ...saved.image },
-    };
-  } catch {
-    return initialState;
-  }
+// 班次名被清空的记录（正在编辑中）不保存。
+export function toDoc(s: State): Doc {
+  return {
+    shifts: s.shifts.filter((x) => x.name.trim()),
+    yearless: s.yearless,
+    fileName: s.fileName,
+    settings: { styles: s.styles, image: s.image, title: s.title, preset: s.preset, format: s.format },
+  };
 }
 
-export function saveState(state: State) {
-  try {
-    localStorage.setItem(key, JSON.stringify(state));
-  } catch {
-    // 无痕模式或存储已满时存不了，不影响当前使用。
-  }
+// 和默认值合并，以后加了新选项时老数据也能用。还没有班表时返回默认状态。
+export function fromDoc(doc: Doc | null): State {
+  if (!doc) return initialState;
+  const st: Partial<Doc["settings"]> = doc.settings ?? {};
+  return {
+    ...initialState,
+    shifts: doc.shifts ?? [],
+    yearless: !!doc.yearless,
+    fileName: doc.fileName ?? "",
+    title: st.title ?? initialState.title,
+    preset: st.preset ?? initialState.preset,
+    format: st.format ?? initialState.format,
+    styles: { ...initialState.styles, ...st.styles },
+    image: { ...initialState.image, ...st.image },
+  };
 }

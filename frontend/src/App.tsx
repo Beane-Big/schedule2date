@@ -1,13 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
+import { api, ApiError, type Saved } from "./api";
 import CellEditor from "./CellEditor";
+import { can, getMe, type Me } from "./platform";
 import { draw, hitTest, type CellBox, type ImageOptions, type MonthData } from "./render";
 import { monthsOf, readTable, toShifts, withYear, type Shift } from "./schedule";
-import { initialState, loadState, maxPixels, maxSide, minSide, saveState, sizePresets, type Format, type State } from "./store";
+import { fromDoc, initialState, maxPixels, maxSide, minSide, sizePresets, toDoc, type Format, type State } from "./store";
 import { Field, Segmented, Toggle } from "./ui";
 
-// 首页：导入班表文件，生成月历图片，点格子改样式，按选定尺寸下载。
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+// 首页：有“制作班表”权限的人导入班表文件、点格子改样式、改图片设置，改动自动保存到后端；
+// 只有“查看班表”权限的人只能看、切换月份和下载。后端只保留最新一份班表。
 export default function App() {
-  const [state, setState] = useState<State>(loadState);
+  const [me, setMe] = useState<Me | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [state, setState] = useState<State>(initialState);
+  const [meta, setMeta] = useState<Omit<Saved, "data"> | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [saveError, setSaveError] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,7 +29,77 @@ export default function App() {
   const update = (patch: Partial<State>) => setState((s) => ({ ...s, ...patch }));
   const setImage = (patch: Partial<State["image"]>) => setState((s) => ({ ...s, image: { ...s.image, ...patch } }));
 
-  useEffect(() => saveState(state), [state]);
+  const canMake = !!me && can(me, "make");
+  const canView = !!me && (canMake || can(me, "view"));
+
+  // 先取当前用户的权限，能查看时再取班表。
+  useEffect(() => {
+    getMe()
+      .then(async (user) => {
+        setMe(user);
+        if (can(user, "view") || can(user, "make")) apply(await api.schedule());
+      })
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "读取班表失败"));
+  }, []);
+
+  // ---- 自动保存 ----
+  // 改动停下 0.8 秒后把整份班表存到后端。同一时间只发一个保存请求，保存期间又有改动时，存完接着再存一次。
+  const docJson = JSON.stringify(toDoc(state));
+  const latestDoc = useRef(docJson);
+  latestDoc.current = docJson;
+  const lastSaved = useRef(docJson); // 和后端一致的那份
+  const version = useRef(0);
+  const inFlight = useRef(false);
+
+  // apply 换成后端的班表（加载时，或保存冲突时换成别人刚存的那份）。
+  function apply(saved: Saved) {
+    const next = fromDoc(saved.data);
+    lastSaved.current = JSON.stringify(toDoc(next));
+    version.current = saved.version;
+    setMeta({ version: saved.version, updatedBy: saved.updatedBy, updatedAt: saved.updatedAt });
+    setSelected(null);
+    setState((s) => ({ ...next, month: s.month }));
+  }
+
+  async function flush() {
+    if (inFlight.current || latestDoc.current === lastSaved.current) return;
+    const body = latestDoc.current;
+    inFlight.current = true;
+    setSaveStatus("saving");
+    setSaveError("");
+    let ok = false;
+    try {
+      const saved = await api.save(version.current, JSON.parse(body));
+      lastSaved.current = body;
+      version.current = saved.version;
+      setMeta({ version: saved.version, updatedBy: saved.updatedBy, updatedAt: saved.updatedAt });
+      setSaveStatus("saved");
+      ok = true;
+    } catch (err) {
+      const current = err instanceof ApiError && err.status === 409 ? (err.body as { current?: Saved }).current : undefined;
+      if (current) apply(current);
+      setSaveStatus("error");
+      setSaveError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      inFlight.current = false;
+    }
+    if (ok && latestDoc.current !== lastSaved.current) flush();
+  }
+
+  useEffect(() => {
+    if (!canMake || docJson === lastSaved.current) return;
+    const timer = setTimeout(flush, 800);
+    return () => clearTimeout(timer);
+  }, [docJson, canMake]);
+
+  // 还有没存上的改动时，关闭或刷新页面前提醒一下。
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (latestDoc.current !== lastSaved.current) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
 
   const months = useMemo(() => monthsOf(state.shifts.filter((s) => s.name.trim())), [state.shifts]);
   const month = months.includes(state.month) ? state.month : (months[0] ?? "");
@@ -82,7 +162,7 @@ export default function App() {
     const rect = canvas.getBoundingClientRect();
     const x = ((e.clientX - rect.left) * canvas.width) / rect.width;
     const y = ((e.clientY - rect.top) * canvas.height) / rect.height;
-    const date = hitTest(boxes.current, x, y);
+    const date = canMake ? hitTest(boxes.current, x, y) : null;
     if (date) select(date === selected ? null : date);
   }
 
@@ -149,7 +229,9 @@ export default function App() {
   }
 
   // 清空导入的班表和按天设置的样式；班次样式和图片设置留着，下个月导入时接着用。
+  // 班表是大家共用的，清空后所有人都看不到，先确认一下。
   function clearAll() {
+    if (!window.confirm("清空后所有人都看不到这份班表，确定清空吗？")) return;
     setSelected(null);
     setError("");
     setState((s) => ({
@@ -163,65 +245,65 @@ export default function App() {
   }
 
   const selectedEntry = selected ? state.shifts.find((s) => s.date === selected) : undefined;
+  const updated = meta?.updatedAt && meta.version > 0 ? formatTime(meta.updatedAt) : "";
+
+  // 还在取权限和班表、出错了、或者没有权限时，只显示一张说明卡片。
+  const notice = loadError ? (
+    <p className="error">{loadError}</p>
+  ) : !me || (canView && !meta) ? (
+    <p className="muted">正在读取班表…</p>
+  ) : !canView ? (
+    <p className="muted">你还没有“查看班表”的权限，请联系管理员在门户的“用户”页开通。</p>
+  ) : null;
+  if (notice)
+    return (
+      <main className="content">
+        <section className="card stack empty">{notice}</section>
+      </main>
+    );
 
   return (
     <main className="content wide">
-      {/* 窄屏按 导入、预览、编辑、设置 的顺序排；宽屏左边是导入和设置，右边是预览，见 styles.css 的 .layout。 */}
-      <div className="layout">
-        <section
-          className={dragging ? "card stack dropzone dragging area-import" : "card stack dropzone area-import"}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        >
-          <h1>导入班表</h1>
-          <p className="muted">支持 .xlsx 和 .csv。表头要有“日期”和“班次”列，“上下班时间”“就餐时间/备注”列可选。也可以把文件拖到这里。</p>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            hidden
-            onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])}
-          />
-          <div className="actions">
-            <button type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
-              {busy ? "读取中…" : state.shifts.length ? "重新导入" : "选择文件"}
-            </button>
-            {state.shifts.length > 0 && (
-              <>
-                <span className="muted">
-                  {state.fileName} · {state.shifts.filter((s) => s.name.trim()).length} 天
-                </span>
-                <button type="button" className="link" onClick={clearAll}>
-                  清空
-                </button>
-              </>
-            )}
-          </div>
-          {error && <p className="error">{error}</p>}
-          {data && (
-            <div className="fields">
-              {months.length > 1 && (
-                <Field label="月份">
-                  <select
-                    value={month}
-                    onChange={(e) => {
-                      select(null);
-                      update({ month: e.target.value });
-                    }}
-                  >
-                    {months.map((m) => (
-                      <option key={m} value={m}>
-                        {m.replace("-", "年")}月
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+      {/* 窄屏按 导入、预览、编辑、设置 的顺序排；宽屏左边是导入和设置，右边是预览，见 styles.css 的 .layout。
+          只能查看的人只有预览一块。 */}
+      <div className={canMake ? "layout" : "layout view-only"}>
+        {canMake && (
+          <section
+            className={dragging ? "card stack dropzone dragging area-import" : "card stack dropzone area-import"}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+          >
+            <h1>导入班表</h1>
+            <p className="muted">支持 .xlsx 和 .csv。表头要有“日期”和“班次”列，“上下班时间”“就餐时间/备注”列可选。也可以把文件拖到这里。</p>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              hidden
+              onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])}
+            />
+            <div className="actions">
+              <button type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
+                {busy ? "读取中…" : state.shifts.length ? "重新导入" : "选择文件"}
+              </button>
+              {state.shifts.length > 0 && (
+                <>
+                  <span className="muted">
+                    {state.fileName} · {state.shifts.filter((s) => s.name.trim()).length} 天
+                  </span>
+                  <button type="button" className="link" onClick={clearAll}>
+                    清空
+                  </button>
+                </>
               )}
-              {state.yearless && (
+            </div>
+            {error && <p className="error">{error}</p>}
+            {data && state.yearless && (
+              <div className="fields">
                 <Field label="年份（原表没写年份）">
                   <select value={year} onChange={(e) => changeYear(Number(e.target.value))}>
                     {yearChoices.map((y) => (
@@ -231,10 +313,10 @@ export default function App() {
                     ))}
                   </select>
                 </Field>
-              )}
-            </div>
-          )}
-        </section>
+              </div>
+            )}
+          </section>
+        )}
 
         {data ? (
           <section className="card stack area-preview">
@@ -254,16 +336,57 @@ export default function App() {
               )}
             </div>
             </div>
-            <p className="muted">点日期格子可以修改内容和样式。</p>
-            <canvas ref={preview} className="preview" onClick={onPreviewClick} />
+            {canMake ? (
+              <p className="muted">
+                {saveStatus === "saving"
+                  ? "正在保存…"
+                  : saveStatus === "error"
+                    ? ""
+                    : updated
+                      ? `已保存（${meta!.updatedBy} ${updated}）。`
+                      : "改动会自动保存。"}
+                {saveStatus !== "error" && "点日期格子可以修改内容和样式。"}
+              </p>
+            ) : (
+              updated && <p className="muted">最后更新：{meta!.updatedBy} {updated}</p>
+            )}
+            {saveStatus === "error" && (
+              <p className="error">
+                {saveError}
+                {latestDoc.current !== lastSaved.current && (
+                  <button type="button" className="link" onClick={flush}>
+                    重试
+                  </button>
+                )}
+              </p>
+            )}
+            {!canMake && error && <p className="error">{error}</p>}
+            {months.length > 1 && (
+              <Field label="月份">
+                <select
+                  value={month}
+                  onChange={(e) => {
+                    select(null);
+                    update({ month: e.target.value });
+                  }}
+                >
+                  {months.map((m) => (
+                    <option key={m} value={m}>
+                      {m.replace("-", "年")}月
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            <canvas ref={preview} className={canMake ? "preview editable" : "preview"} onClick={onPreviewClick} />
           </section>
         ) : (
           <section className="card stack empty area-preview">
-            <p className="muted">导入班表后，这里会显示生成的图片。</p>
+            <p className="muted">{canMake ? "导入班表后，这里会显示生成的图片。" : "还没有班表，有“制作班表”权限的人导入后这里就会显示。"}</p>
           </section>
         )}
 
-        {data && selected && (
+        {canMake && data && selected && (
           <CellEditor
             className="area-editor"
             key={selected}
@@ -277,7 +400,7 @@ export default function App() {
           />
         )}
 
-        {data && (
+        {canMake && data && (
           <section className="card stack area-settings">
             <h1>图片设置</h1>
             <div className="fields">
@@ -352,4 +475,13 @@ export default function App() {
       </div>
     </main>
   );
+}
+
+// 保存时间显示成“10月27日 14:50”，今年以外的带上年份。
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const md = `${d.getMonth() + 1}月${d.getDate()}日`;
+  return d.getFullYear() === new Date().getFullYear() ? `${md} ${hm}` : `${d.getFullYear()}年${md} ${hm}`;
 }
