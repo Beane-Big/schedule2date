@@ -98,3 +98,93 @@ input {
 
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .list li { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+
+/* ---- 班表页面 ---- */
+
+h2 { margin: 0; font-size: 16px; }
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+select {
+  font-size: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+}
+
+/* 复选框、取色器、滑块不用文本框的内边距和伸展。 */
+input[type="checkbox"], input[type="color"], input[type="range"] { flex: none; padding: 0; }
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+input[type="color"] { width: 56px; height: 40px; padding: 2px; cursor: pointer; }
+input[type="range"] { width: 100%; border: 0; background: none; accent-color: var(--accent); }
+input:disabled { opacity: 0.6; }
+
+.content.wide { max-width: 1120px; }
+
+/* 窄屏一列，按页面里的顺序：导入、预览、编辑、设置。宽屏左边是导入、编辑、设置，右边是预览。 */
+.layout { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "import preview" "editor preview" "settings preview";
+    grid-template-rows: auto auto 1fr;
+  }
+  .area-import { grid-area: import; }
+  .area-editor { grid-area: editor; }
+  .area-settings { grid-area: settings; }
+  .area-preview { grid-area: preview; position: sticky; top: 16px; }
+}
+
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.card-head h1 { margin: 0; }
+
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.field input:not([type="checkbox"]):not([type="color"]):not([type="range"]), .field select { width: 100%; }
+
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  align-self: flex-start;
+  max-width: 100%;
+}
+.segmented button {
+  background: transparent;
+  color: var(--text);
+  border-radius: 0;
+  font-size: 14px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button.active { background: var(--accent); color: #fff; }
+
+.dropzone.dragging { border-color: var(--accent); border-style: dashed; }
+
+.preview {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.empty { min-height: 200px; justify-content: center; align-items: center; }
