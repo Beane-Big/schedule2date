@@ -4,7 +4,7 @@ id: schedule2date        # 全局唯一，也是网址前缀 /apps/schedule2date
 name: "班表"
 description: "排期班表"
 icon: icon.svg
-version: 0.1.0           # 发布新版本前改大
+version: 0.1.1           # 发布新版本前改大
 services:                # 哪个容器接哪个网址前缀，安装器据此生成网关路由
   frontend: {port: 80}   # 容器 schedule2date-frontend → /apps/schedule2date/
   backend: {port: 8000}  # 容器 schedule2date-backend → /api/schedule2date/，健康检查 /api/schedule2date/health
