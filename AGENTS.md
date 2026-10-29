@@ -4,6 +4,7 @@
 
 - 模块 id 是 `schedule2date`：页面在 `/apps/schedule2date/` 下，接口在 `/api/schedule2date/` 下，容器叫 `schedule2date-frontend` 和 `schedule2date-backend`。
 - 不要自己写网关路由标签、端口映射或网络，安装器会补上；`compose.yaml` 允许的字段见规范。
+- 图标只有一份：根目录的 `icon.svg`（`module.yaml` 里的 `icon`）。平台主页、浏览器页签和 iOS 添加到主屏幕都用它，构建前端时由 `frontend/vite-icon.ts` 自动复制一份、再画成 iOS 用的 `apple-touch-icon.png`，并写进 `index.html`。不要在 `frontend/` 里另放图标或手写图标链接；图标里不要用 `<text>`，文字先转成路径。
 - 不写登录代码。后端用 SDK `github.com/Beane-Big/vibebooth/packages/sdk-go/auth` 拿当前用户。
 - 接口权限：要按人控制“能做什么”（例如编辑、清空）时，在 `module.yaml` 的 `permissions` 里声明，后端用 `auth.UserFrom(ctx).Has("<权限 id>")` 检查；没有声明功能权限时用 `HasMenu("<菜单 id>")`。不要用角色判断。前端用 `platform.ts` 的 `can(me, "<权限 id>")` 隐藏没权限的按钮，但真正的检查在后端。
 - 前端和平台打交道（取当前用户、权限）只经过 `frontend/src/platform.ts`（纯静态页面是 `public/platform.js`），不要在别处直接请求 `/me`。
